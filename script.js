@@ -7,6 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let count = 0;
     let isAnimating = false;
     let isSoundEnabled = true;
+    
+    // 音频对象池
+    const AUDIO_POOL_SIZE = 4;
+    const audioPool = [];
+    
+    // 初始化音频池
+    for (let i = 0; i < AUDIO_POOL_SIZE; i++) {
+        const audio = new Audio('coconut-pop.mp3');
+        audio.preload = 'auto';
+        audioPool.push(audio);
+    }
+    let currentAudioIndex = 0;
 
     // 从 localStorage 读取音效状态
     if (localStorage.getItem('woodfishSoundEnabled') === 'false') {
@@ -15,12 +27,42 @@ document.addEventListener('DOMContentLoaded', () => {
         soundToggle.classList.add('muted');
     }
 
+    // 预加载音频
+    function preloadAudio() {
+        audioPool.forEach(audio => {
+            audio.load();
+            // 在iOS上触发一次播放以解锁音频
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }).catch(() => {});
+            }
+        });
+    }
+
+    // 尝试预加载音频
+    preloadAudio();
+
+    // 优化的播放声音函数
     function playSound() {
-        if (isSoundEnabled) {
-            // 重置音频播放位置
-            woodfishSound.currentTime = 0;
-            woodfishSound.play().catch(error => console.log('播放失败:', error));
+        if (!isSoundEnabled) return;
+
+        const audio = audioPool[currentAudioIndex];
+        audio.currentTime = 0;
+        
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log('播放失败:', error);
+                // 如果播放失败，重新尝试预加载
+                preloadAudio();
+            });
         }
+
+        // 循环使用音频池
+        currentAudioIndex = (currentAudioIndex + 1) % AUDIO_POOL_SIZE;
     }
 
     // 创建点击动画元素
@@ -55,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 计算动画位置
         const rect = woodfish.getBoundingClientRect();
-        const x = rect.left + rect.width / 2 - 14; // 14px 是数字宽度的一半
+        const x = rect.left + rect.width / 2 - 14;
         const y = rect.top + rect.height / 2;
 
         // 创建动画元素
@@ -83,9 +125,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isSoundEnabled) {
             soundToggle.textContent = '🔊';
             soundToggle.classList.remove('muted');
+            // 重新预加载音频
+            preloadAudio();
         } else {
             soundToggle.textContent = '🔇';
             soundToggle.classList.add('muted');
         }
     });
+
+    // 处理页面可见性变化
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            // 页面变为可见时重新预加载音频
+            preloadAudio();
+        }
+    });
+
+    // 处理触摸开始事件，用于iOS设备解锁音频
+    document.addEventListener('touchstart', () => {
+        if (isSoundEnabled) {
+            preloadAudio();
+        }
+    }, { once: true });
 }); 
