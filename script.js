@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 从 localStorage 读取音效状态
     if (localStorage.getItem('woodfishSoundEnabled') === 'false') {
         isSoundEnabled = false;
-        soundToggle.textContent = '🔇';
         soundToggle.classList.add('muted');
     }
 
@@ -123,12 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('woodfishSoundEnabled', isSoundEnabled);
         
         if (isSoundEnabled) {
-            soundToggle.textContent = '🔊';
             soundToggle.classList.remove('muted');
             // 重新预加载音频
             preloadAudio();
         } else {
-            soundToggle.textContent = '🔇';
             soundToggle.classList.add('muted');
         }
     });
