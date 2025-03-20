@@ -4,10 +4,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const countDisplay = document.getElementById('count');
     const soundToggle = document.getElementById('soundToggle');
     const woodfishSound = document.getElementById('woodfishSound');
+    const modeSelect = document.getElementById('modeSelect');
+    
     let count = 0;
     let isAnimating = false;
     let isSoundEnabled = true;
+    let currentMode = 'simple';
     
+    // 词语列表
+    const emotionWords = [
+        '别生气', '随它去', '放一放', '算了吧', '看开点',
+        '有啥大不了', '开心活', '不内耗', '无所谓啦', '放轻松点'
+    ];
+    
+    const socialistWords = [
+        '富强', '民主', '文明', '和谐', '自由',
+        '平等', '公正', '法治', '爱国', '敬业',
+        '诚信', '友善'
+    ];
+
     // 音频对象池
     const AUDIO_POOL_SIZE = 4;
     const audioPool = [];
@@ -30,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function preloadAudio() {
         audioPool.forEach(audio => {
             audio.load();
-            // 在iOS上触发一次播放以解锁音频
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
@@ -55,20 +69,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playPromise !== undefined) {
             playPromise.catch(error => {
                 console.log('播放失败:', error);
-                // 如果播放失败，重新尝试预加载
                 preloadAudio();
             });
         }
 
-        // 循环使用音频池
         currentAudioIndex = (currentAudioIndex + 1) % AUDIO_POOL_SIZE;
     }
 
-    // 创建点击动画元素
-    function createCountAnimation(x, y) {
+    // 获取随机词语
+    function getRandomWord(mode) {
+        const words = mode === 'emotion' ? emotionWords : socialistWords;
+        return words[Math.floor(Math.random() * words.length)];
+    }
+
+    // 创建浮动文字
+    function createFloatingText(x, y) {
         const element = document.createElement('div');
         element.className = 'count-animation';
-        element.textContent = '+1';
+        
+        // 根据模式选择显示内容
+        switch (currentMode) {
+            case 'simple':
+                element.textContent = '+1';
+                break;
+            case 'emotion':
+            case 'socialist':
+                element.textContent = '+' + getRandomWord(currentMode);
+                break;
+        }
+
         element.style.left = `${x}px`;
         element.style.top = `${y}px`;
         container.appendChild(element);
@@ -79,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 处理点击/触摸事件
+    // 处理点击事件
     function handleTap(event) {
         if (isAnimating) return;
         isAnimating = true;
@@ -96,17 +125,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 计算动画位置
         const rect = woodfish.getBoundingClientRect();
-        const x = rect.left + rect.width / 2 - 14;
+        const x = rect.left + rect.width / 2;
         const y = rect.top + rect.height / 2;
 
         // 创建动画元素
-        createCountAnimation(x, y);
+        createFloatingText(x, y);
 
         // 移除动画类
         setTimeout(() => {
             woodfish.classList.remove('active');
             isAnimating = false;
         }, 150);
+    }
+
+    // 监听模式选择变化
+    modeSelect.addEventListener('change', (e) => {
+        currentMode = e.target.value;
+        localStorage.setItem('woodfishMode', currentMode);
+    });
+
+    // 从 localStorage 读取上次选择的模式
+    const savedMode = localStorage.getItem('woodfishMode');
+    if (savedMode) {
+        currentMode = savedMode;
+        modeSelect.value = savedMode;
     }
 
     // 添加事件监听器
@@ -123,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isSoundEnabled) {
             soundToggle.classList.remove('muted');
-            // 重新预加载音频
             preloadAudio();
         } else {
             soundToggle.classList.add('muted');
@@ -133,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 处理页面可见性变化
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            // 页面变为可见时重新预加载音频
             preloadAudio();
         }
     });
