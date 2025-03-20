@@ -2,8 +2,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const woodfish = document.querySelector('.woodfish');
     const container = document.querySelector('.container');
     const countDisplay = document.getElementById('count');
+    const soundToggle = document.getElementById('soundToggle');
+    const woodfishSound = document.getElementById('woodfishSound');
     let count = 0;
     let isAnimating = false;
+    let isSoundEnabled = true;
+
+    // 从 localStorage 读取音效状态
+    if (localStorage.getItem('woodfishSoundEnabled') === 'false') {
+        isSoundEnabled = false;
+        soundToggle.textContent = '🔇';
+        soundToggle.classList.add('muted');
+    }
+
+    function playSound() {
+        if (isSoundEnabled) {
+            // 重置音频播放位置
+            woodfishSound.currentTime = 0;
+            woodfishSound.play().catch(error => console.log('播放失败:', error));
+        }
+    }
 
     // 创建点击动画元素
     function createCountAnimation(x, y) {
@@ -24,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap(event) {
         if (isAnimating) return;
         isAnimating = true;
+
+        // 播放音效
+        playSound();
 
         // 增加计数
         count++;
@@ -53,4 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         handleTap(e);
     }, { passive: false });
+
+    // 音效开关功能
+    soundToggle.addEventListener('click', function() {
+        isSoundEnabled = !isSoundEnabled;
+        localStorage.setItem('woodfishSoundEnabled', isSoundEnabled);
+        
+        if (isSoundEnabled) {
+            soundToggle.textContent = '🔊';
+            soundToggle.classList.remove('muted');
+        } else {
+            soundToggle.textContent = '🔇';
+            soundToggle.classList.add('muted');
+        }
+    });
 }); 
