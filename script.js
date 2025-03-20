@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 初始化音频池
     for (let i = 0; i < AUDIO_POOL_SIZE; i++) {
-        const audio = new Audio('coconut-pop.mp3');
+        const audio = new Audio('knock-woodfish.mp3');
         audio.preload = 'auto';
         audioPool.push(audio);
     }
